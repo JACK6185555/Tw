@@ -147,7 +147,7 @@ def fetch_target_articles(client, year: str, target: str, target_count: int = 10
                         "snippet": str(article.get("snippet", ""))
                     }
             if len(collected) >= target_count:
-                return list(collected.values())[:target_count]
+                return list(collected.values()[:target_count])
     
     articles_list = list(collected.values())
     while len(articles_list) < target_count:
@@ -171,13 +171,11 @@ def load_cached_bert_model():
         return None
 
 # ==========================================
-# 情感極性與信心等級分數顯示函式（純文字 + 信心等級）
+# 情感極性與信心等級分數顯示函式（純文字 + 信心等級，外加定高捲軸容器保持視覺一致）
 # ==========================================
 def display_sentiment_with_confidence_score(text, polarity, confidence):
-    # 計算百分比
     confidence_pct = int(confidence * 100)
     
-    # 信心等級文字判定
     if confidence >= 0.85:
         certainty_text = "極高確信"
     elif confidence >= 0.65:
@@ -185,7 +183,6 @@ def display_sentiment_with_confidence_score(text, polarity, confidence):
     else:
         certainty_text = "中等確信（語意較模稜兩可）"
 
-    # 設定情感極性文字與顏色
     if polarity == "正面":
         label_text = "【正面情緒 / 肯定態度】"
         label_color = "green"
@@ -196,11 +193,18 @@ def display_sentiment_with_confidence_score(text, polarity, confidence):
         label_text = "【中立客觀 / 無明顯情緒】"
         label_color = "gray"
     
-    # 畫面輸出
-    st.write(f"**分析內文**：{text}")
-    st.markdown(f"**情感傾向**：:{label_color}[{label_text}]")
-    st.write(f"**信心等級分數**：{confidence_pct}%（{certainty_text}）")
-    st.progress(confidence)
+    # 放入與左側表格高度相仿且帶捲軸的容器，維持畫面整齊一致
+    with st.container():
+        st.markdown(
+            f"""
+            <div style="height: 385px; overflow-y: auto; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;">
+                <p style="margin-bottom: 8px;"><b>分析內文</b>：{text}</p>
+                <p style="margin-bottom: 8px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
+                <p style="margin-bottom: 8px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     st.divider()
 
 translations = {
@@ -274,6 +278,15 @@ api_key_input = st.sidebar.text_input(
 
 analysis_mode = st.sidebar.selectbox(t["mode_label"], [t["mode_1"], t["mode_2"]])
 
+# 將爬取數量設定放回側邊欄讓使用者隨時可調整
+target_count = st.sidebar.number_input(
+    "每位候選人/政黨目標新聞數 (建議 50-300 篇)",
+    min_value=50,
+    max_value=300,
+    value=100,
+    step=50,
+)
+
 if "sentiment_pipeline" not in st.session_state:
     with st.spinner("🧠 首次啟動正在載入高階 BERT 情感分析模型，請稍候..."):
         st.session_state.sentiment_pipeline = load_cached_bert_model()
@@ -282,14 +295,7 @@ sentiment_pipeline = st.session_state.sentiment_pipeline
 if analysis_mode == t["mode_1"]:
     selected_year = st.sidebar.selectbox(t["year_label"], ["2024年大選 / 2024 Election", "2022年大選 / 2022 Election"])
     
-    target_count = st.sidebar.number_input(
-        "每位候選人/政黨目標新聞數 (建議 100 篇以上)",
-        min_value=50,
-        max_value=300,
-        value=100,
-        step=50,
-    )
-    fetch_real_news = st.button("📰 實際動態抓取每位候選人與政黨新聞 (>=100篇)")
+    fetch_real_news = st.button("📰 實際動態抓取每位候選人與政黨新聞")
     
     st.subheader(t["level_1_title"])
     
@@ -341,16 +347,16 @@ if analysis_mode == t["mode_1"]:
         col1, col2 = st.columns([1.2, 1.8])
         with col1:
             st.markdown(f"**{t['news_list']} ({len(df_cand)} 篇)**")
-            st.dataframe(df_cand, use_container_width=True)
+            # 固定表格高度，讓左右兩欄大小一致、畫面整齊不混亂
+            st.dataframe(df_cand, use_container_width=True, height=400)
         with col2:
             st.markdown(f"**{t['bert_eval']}**")
             if sentiment_pipeline:
                 texts_to_analyze = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_cand.iterrows()]
                 results = sentiment_pipeline(texts_to_analyze)
                 
-                # 逐筆顯示純文字情感極性與信心等級分數
+                # 迴圈逐筆帶入高度一致的容器中
                 for (_, row), res in zip(df_cand.iterrows(), results):
-                    # 將模型標籤對應成正面、負面、中立
                     raw_label = res['label']
                     if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
                         polarity = "正面"
@@ -465,7 +471,7 @@ if analysis_mode == t["mode_1"]:
         
         col1, col2 = st.columns([1.2, 1.8])
         with col1:
-            st.dataframe(df_party, use_container_width=True)
+            st.dataframe(df_party, use_container_width=True, height=400)
         with col2:
             if sentiment_pipeline:
                 texts = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_party.iterrows()]
@@ -543,7 +549,6 @@ else:
     st.markdown(t["custom_desc"])
     
     custom_target = st.sidebar.text_input(t["custom_target_label"], value="柯文哲")
-    # 將年份改為數字輸入框，預設 2026
     custom_year = st.sidebar.number_input(
         t["custom_year_label"], 
         min_value=2018, 
@@ -558,7 +563,7 @@ else:
         
         try:
             client = serpapi.Client(api_key=api_key_input)
-            articles = fetch_target_articles(client, str(custom_year), custom_target, 100)
+            articles = fetch_target_articles(client, str(custom_year), custom_target, int(target_count))
             
             df_custom = pd.DataFrame(articles)
             st.success(t["success_msg"].format(target=custom_target, year=custom_year, count=len(df_custom)))
@@ -566,7 +571,7 @@ else:
             col1, col2 = st.columns([1.2, 1.8])
             with col1:
                 st.markdown(f"**{t['news_list']}**")
-                st.dataframe(df_custom[["title", "source"]], use_container_width=True)
+                st.dataframe(df_custom, use_container_width=True, height=400)
             with col2:
                 st.markdown(f"**{t['bert_eval']}**")
                 if sentiment_pipeline:
