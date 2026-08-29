@@ -170,42 +170,6 @@ def load_cached_bert_model():
     except Exception:
         return None
 
-# ==========================================
-# 情感極性與信心等級分數顯示函式
-# ==========================================
-def display_sentiment_with_confidence_score(text, polarity, confidence):
-    confidence_pct = int(confidence * 100)
-    
-    if confidence >= 0.85:
-        certainty_text = "極高確信"
-    elif confidence >= 0.65:
-        certainty_text = "高度確信"
-    else:
-        certainty_text = "中等確信（語意較模稜兩可）"
-
-    if polarity == "正面":
-        label_text = "【正面情緒 / 肯定態度】"
-        label_color = "green"
-    elif polarity == "負面":
-        label_text = "【負面情緒 / 批評態度】"
-        label_color = "red"
-    else:
-        label_text = "【中立客觀 / 無明顯情緒】"
-        label_color = "gray"
-    
-    with st.container():
-        st.markdown(
-            f"""
-            <div style="height: 385px; overflow-y: auto; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;">
-                <p style="margin-bottom: 8px;"><b>分析內文</b>：{text}</p>
-                <p style="margin-bottom: 8px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
-                <p style="margin-bottom: 8px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    st.divider()
-
 translations = {
     "繁體中文": {
         "title": "🇹🇼 臺灣大選雙層次輿情與勝敗因果 NLP 分析系統 (FYP)",
@@ -342,36 +306,74 @@ if analysis_mode == t["mode_1"]:
         st.markdown(f"#### 👤 候選人/陣營 Candidate: {cand_name}")
         df_cand = pd.DataFrame(info["articles"])
         
-        col1, col2 = st.columns([1.2, 1.8])
+        # 左右並排佈局
+        col1, col2 = st.columns(2)
+        
+        # 左側：Related News & Summaries 捲動容器
         with col1:
             st.markdown(f"**{t['news_list']} ({len(df_cand)} 篇)**")
-            st.dataframe(df_cand, use_container_width=True, height=400)
+            news_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
+            for _, row in df_cand.iterrows():
+                news_html_container += f"""
+                <div style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; background-color: #ffffff; border-radius: 6px;">
+                    <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 13px;">{row['title']}</p>
+                    <p style="margin: 0; font-size: 12px; color: #666;">來源：{row.get('source', '未知')} | 摘要：{row.get('snippet', '')}</p>
+                </div>
+                """
+            news_html_container += "</div>"
+            st.markdown(news_html_container, unsafe_allow_html=True)
+
+        # 右側：BERT 語言模型情感極性與信心分數 捲動容器
         with col2:
             st.markdown(f"**{t['bert_eval']}**")
             if sentiment_pipeline:
                 texts_to_analyze = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_cand.iterrows()]
                 results = sentiment_pipeline(texts_to_analyze)
                 
+                bert_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
+                sentiments = []
+                
                 for (_, row), res in zip(df_cand.iterrows(), results):
                     raw_label = res['label']
                     if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
                         polarity = "正面"
+                        label_color = "green"
+                        label_text = "【正面情緒 / 肯定態度】"
                     elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
                         polarity = "負面"
+                        label_color = "red"
+                        label_text = "【負面情緒 / 批評態度】"
                     else:
                         polarity = "中立"
+                        label_color = "gray"
+                        label_text = "【中立客觀 / 無明顯情緒】"
                     
-                    display_sentiment_with_confidence_score(
-                        text=row["title"],
-                        polarity=polarity,
-                        confidence=float(res['score'])
-                    )
+                    confidence = float(res['score'])
+                    confidence_pct = int(confidence * 100)
+                    
+                    if confidence >= 0.85:
+                        certainty_text = "極高確信"
+                    elif confidence >= 0.65:
+                        certainty_text = "高度確信"
+                    else:
+                        certainty_text = "中等確信（語意較模稜兩可）"
+                    
+                    bert_html_container += f"""
+                    <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background-color: #ffffff;">
+                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>分析標題</b>：{row['title']}</p>
+                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
+                        <p style="margin: 0; font-size: 13px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
+                    </div>
+                    """
+                    
+                    sentiments.append({
+                        "新聞標題": row["title"][:20] + "...",
+                        "情感極性": res['label'],
+                        "信心分數": round(confidence, 4)
+                    })
                 
-                sentiments = [{
-                    "新聞標題": row["title"][:20] + "...",
-                    "情感極性": res['label'],
-                    "信心分數": round(res['score'], 4)
-                } for (_, row), res in zip(df_cand.iterrows(), results)]
+                bert_html_container += "</div>"
+                st.markdown(bert_html_container, unsafe_allow_html=True)
                 df_sent = pd.DataFrame(sentiments)
             else:
                 st.info(t["loading"])
@@ -465,34 +467,71 @@ if analysis_mode == t["mode_1"]:
         st.markdown(f"#### 🏛️ 政黨 Party: {party_name}")
         df_party = pd.DataFrame(info["articles"])
         
-        col1, col2 = st.columns([1.2, 1.8])
+        col1, col2 = st.columns(2)
+        
         with col1:
-            st.dataframe(df_party, use_container_width=True, height=400)
+            st.markdown(f"**{t['news_list']} ({len(df_party)} 篇)**")
+            news_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
+            for _, row in df_party.iterrows():
+                news_html_container += f"""
+                <div style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; background-color: #ffffff; border-radius: 6px;">
+                    <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 13px;">{row['title']}</p>
+                    <p style="margin: 0; font-size: 12px; color: #666;">來源：{row.get('source', '未知')} | 摘要：{row.get('snippet', '')}</p>
+                </div>
+                """
+            news_html_container += "</div>"
+            st.markdown(news_html_container, unsafe_allow_html=True)
+
         with col2:
+            st.markdown(f"**{t['bert_eval']}**")
             if sentiment_pipeline:
                 texts = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_party.iterrows()]
                 res_list = sentiment_pipeline(texts)
+                
+                bert_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
+                sentiments = []
                 
                 for (_, row), res in zip(df_party.iterrows(), res_list):
                     raw_label = res['label']
                     if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
                         polarity = "正面"
+                        label_color = "green"
+                        label_text = "【正面情緒 / 肯定態度】"
                     elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
                         polarity = "負面"
+                        label_color = "red"
+                        label_text = "【負面情緒 / 批評態度】"
                     else:
                         polarity = "中立"
+                        label_color = "gray"
+                        label_text = "【中立客觀 / 無明顯情緒】"
                     
-                    display_sentiment_with_confidence_score(
-                        text=row["title"],
-                        polarity=polarity,
-                        confidence=float(res['score'])
-                    )
-
-                sentiments = [{
-                    "新聞標題": row["title"][:20] + "...",
-                    "情感極性": res['label'],
-                    "信心分數": round(res['score'], 4)
-                } for (_, row), res in zip(df_party.iterrows(), res_list)]
+                    confidence = float(res['score'])
+                    confidence_pct = int(confidence * 100)
+                    
+                    if confidence >= 0.85:
+                        certainty_text = "極高確信"
+                    elif confidence >= 0.65:
+                        certainty_text = "高度確信"
+                    else:
+                        certainty_text = "中等確信（語意較模稜兩可）"
+                    
+                    bert_html_container += f"""
+                    <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background-color: #ffffff;">
+                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>分析標題</b>：{row['title']}</p>
+                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
+                        <p style="margin: 0; font-size: 13px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
+                    </div>
+                    """
+                    
+                    sentiments.append({
+                        "新聞標題": row["title"][:20] + "...",
+                        "情感極性": res['label'],
+                        "信心分數": round(confidence, 4)
+                    })
+                
+                bert_html_container += "</div>"
+                st.markdown(bert_html_container, unsafe_allow_html=True)
                 df_party_sent = pd.DataFrame(sentiments)
             else:
                 st.info(t["loading"])
@@ -564,36 +603,71 @@ else:
             df_custom = pd.DataFrame(articles)
             st.success(t["success_msg"].format(target=custom_target, year=custom_year, count=len(df_custom)))
             
-            col1, col2 = st.columns([1.2, 1.8])
+            col1, col2 = st.columns(2)
+            
             with col1:
-                st.markdown(f"**{t['news_list']}**")
-                st.dataframe(df_custom, use_container_width=True, height=400)
+                st.markdown(f"**{t['news_list']} ({len(df_custom)} 篇)**")
+                news_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
+                for _, row in df_custom.iterrows():
+                    news_html_container += f"""
+                    <div style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; background-color: #ffffff; border-radius: 6px;">
+                        <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 13px;">{row['title']}</p>
+                        <p style="margin: 0; font-size: 12px; color: #666;">來源：{row.get('source', '未知')} | 摘要：{row.get('snippet', '')}</p>
+                    </div>
+                    """
+                news_html_container += "</div>"
+                st.markdown(news_html_container, unsafe_allow_html=True)
+
             with col2:
                 st.markdown(f"**{t['bert_eval']}**")
                 if sentiment_pipeline:
                     texts = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_custom.iterrows()]
                     res_list = sentiment_pipeline(texts)
                     
+                    bert_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
+                    sentiments = []
+                    
                     for (_, row), res in zip(df_custom.iterrows(), res_list):
                         raw_label = res['label']
                         if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
                             polarity = "正面"
+                            label_color = "green"
+                            label_text = "【正面情緒 / 肯定態度】"
                         elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
                             polarity = "負面"
+                            label_color = "red"
+                            label_text = "【負面情緒 / 批評態度】"
                         else:
                             polarity = "中立"
+                            label_color = "gray"
+                            label_text = "【中立客觀 / 無明顯情緒】"
                         
-                        display_sentiment_with_confidence_score(
-                            text=row["title"],
-                            polarity=polarity,
-                            confidence=float(res['score'])
-                        )
-
-                    sentiments = [{
-                        "新聞標題": row["title"][:20] + "...",
-                        "情感極性": res['label'],
-                        "信心分數": round(res['score'], 4)
-                    } for (_, row), res in zip(df_custom.iterrows(), res_list)]
+                        confidence = float(res['score'])
+                        confidence_pct = int(confidence * 100)
+                        
+                        if confidence >= 0.85:
+                            certainty_text = "極高確信"
+                        elif confidence >= 0.65:
+                            certainty_text = "高度確信"
+                        else:
+                            certainty_text = "中等確信（語意較模稜兩可）"
+                        
+                        bert_html_container += f"""
+                        <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background-color: #ffffff;">
+                            <p style="margin: 0 0 4px 0; font-size: 13px;"><b>分析標題</b>：{row['title']}</p>
+                            <p style="margin: 0 0 4px 0; font-size: 13px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
+                            <p style="margin: 0; font-size: 13px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
+                        </div>
+                        """
+                        
+                        sentiments.append({
+                            "新聞標題": row["title"][:20] + "...",
+                            "情感極性": res['label'],
+                            "信心分數": round(confidence, 4)
+                        })
+                    
+                    bert_html_container += "</div>"
+                    st.markdown(bert_html_container, unsafe_allow_html=True)
                     df_cust_sent = pd.DataFrame(sentiments)
                 else:
                     st.info(t["loading"])
