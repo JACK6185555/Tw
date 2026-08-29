@@ -178,7 +178,7 @@ translations = {
         "lang_label": "選擇網頁語言 (Language)",
         "api_label": "輸入 SerpApi Key",
         "mode_label": "選擇分析模式",
-        "mode_1": "歷屆大選雙層次分析 (2022 / 2024 / 2026年)",
+        "mode_1": "歷屆大選雙層次分析 (2020 / 2022 / 2024 / 2026年)",
         "mode_2": "自訂政黨或政治人物專屬查詢 (選用功能)",
         "year_label": "選擇大選年份",
         "level_1_title": "🎯 第一層次：總統/首長候選人勝率與情感 NLP 評估",
@@ -204,7 +204,7 @@ translations = {
         "lang_label": "Select Language",
         "api_label": "Enter SerpApi Key",
         "mode_label": "Select Analysis Mode",
-        "mode_1": "Hierarchical Election Analysis (2022 / 2024 / 2026)",
+        "mode_1": "Hierarchical Election Analysis (2020 / 2022 / 2024 / 2026)",
         "mode_2": "Custom Politician / Party Query (Optional)",
         "year_label": "Select Election Year",
         "level_1_title": "🎯 Level 1: Presidential / Mayor Candidate Win Rates & Sentiment NLP Evaluation",
@@ -247,7 +247,12 @@ if "sentiment_pipeline" not in st.session_state:
 sentiment_pipeline = st.session_state.sentiment_pipeline
 
 if analysis_mode == t["mode_1"]:
-    selected_year = st.sidebar.selectbox(t["year_label"], ["2026年大選 / 2026 Election", "2024年大選 / 2024 Election", "2022年大選 / 2022 Election"])
+    selected_year = st.sidebar.selectbox(t["year_label"], [
+        "2026年大選 / 2026 Election", 
+        "2024年大選 / 2024 Election", 
+        "2022年大選 / 2022 Election",
+        "2020年大選 / 2020 Election"
+    ])
     
     target_count = st.sidebar.number_input(
         "每位候選人/政黨目標新聞數 (建議 100 篇以上)",
@@ -281,13 +286,25 @@ if analysis_mode == t["mode_1"]:
                 "articles": [{"title": "柯文哲囊括大量年輕選民與中間選民，民眾黨成國會關鍵少數", "source": "自由時報", "snippet": "柯文哲以理性務實科學口號異軍突起，在藍綠夾殺中拿下高票。"}]
             }
         }
-    else:
+    elif "2022" in selected_year:
         candidates_data = {
             "國民黨候選人陣營 (勝選)": {
                 "articles": [{"title": "國民黨在2022九合一選舉大勝，奪下13席地方縣市首長", "source": "中時", "snippet": "國民黨成功凝聚基層士氣，收復多個關鍵執政縣市。"}]
             },
             "民進黨候選人陣營 (遭遇挫敗)": {
                 "articles": [{"title": "民進黨地方選舉失利，執政縣市縮減引發黨內檢討", "source": "三立", "snippet": "受限於整體執政環境與地方布局，部分關鍵選區票數不如預期。"}]
+            }
+        }
+    else:  # 2020年大選
+        candidates_data = {
+            "蔡英文 (勝選 / 得票率 57.13%)": {
+                "articles": [{"title": "蔡英文以史上最高817萬票順利連任，成功捍衛主權與民主防線", "source": "中央社", "snippet": "蔡英文打出抗中保台牌與改革政績，獲得壓倒性勝利。"}]
+            },
+            "韓國瑜 (落選 / 得票率 38.61%)": {
+                "articles": [{"title": "韓國瑜陣營雖凝聚強大庶民氣勢，但受限於市政爭議與大環境落敗", "source": "聯合報", "snippet": "韓國瑜訴求發孔子發財、台灣安全人民有錢，但在總統大選中未能過關。"}]
+            },
+            "宋楚瑜 (落選 / 得票率 4.26%)": {
+                "articles": [{"title": "親民黨宋楚瑜第五度參選總統，扮演關鍵第三勢力角色", "source": "自由時報", "snippet": "宋楚瑜強調豐富從政經驗與跨黨派治理能力。"}]
             }
         }
 
@@ -330,20 +347,16 @@ if analysis_mode == t["mode_1"]:
                 } for (_, row), res in zip(df_cand.iterrows(), results)]
                 df_sent = pd.DataFrame(sentiments)
                 
-                # 呈現表格
                 st.dataframe(df_sent, use_container_width=True)
                 
-                # 📊 新增：情感極性與信心分數視覺化圖表
                 fig_sent, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.2))
                 
-                # 圖 1：情感極性分佈長條圖
                 sentiment_counts = df_sent["情感極性"].value_counts()
                 sns.barplot(x=sentiment_counts.index, y=sentiment_counts.values, palette="crest", ax=ax1)
                 ax1.set_title("情感極性分佈 (Sentiment Polarity)")
                 ax1.set_xlabel("極性 (Polarity)")
                 ax1.set_ylabel("文章數量 (Count)")
                 
-                # 圖 2：信心分數分佈直方圖 (KDE)
                 sns.histplot(df_sent["信心分數"], kde=True, color="teal", ax=ax2, bins=10)
                 ax2.set_title("模型信心分數分佈 (Confidence Score)")
                 ax2.set_xlabel("分數 (Score)")
@@ -418,11 +431,25 @@ if analysis_mode == t["mode_1"]:
                 "articles": [{"title": "民眾黨政黨票大幅成長，8席不分區成立法院關鍵少數", "source": "中央社", "snippet": "民眾黨吸納大量對藍綠不滿的年輕選民。"}]
             }
         }
-    else:
+    elif "2022" in selected_year:
         parties_data = {
             "民主進步黨": {"share": 48.0, "articles": [{"title": "民主進步黨積極固守傳統票倉與本土論述", "source": "自由時報", "snippet": "透過改革政策爭取支持者認同。"}]},
             "中國國民黨": {"share": 38.0, "articles": [{"title": "中國國民黨強調經濟民生與強力監督", "source": "聯合報", "snippet": "結合地方派系與組織固票。"}]},
             "臺灣民眾黨": {"share": 14.0, "articles": [{"title": "臺灣民眾黨積極開拓中間選民", "source": "風傳媒", "snippet": "主打理性監督與居住正義。"}]}
+        }
+    else:  # 2020年大選
+        parties_data = {
+            "民主進步黨 (佔比 52.2% / 61席)": {
+                "share": 52.2,
+                "articles": [{"title": "民進黨在2020立委選舉成功拿下過半席次，維持國會優勢", "source": "自由時報", "snippet": "搭配總統大選勝選，全面完全執政。"}]
+            },
+            "中國國民黨 (佔比 33.0% / 38席)": {
+                "share": 33.0,
+                "articles": [{"title": "國民黨立委席次雖有成長但未能全面突破，扮演在野監督角色", "source": "聯合報", "snippet": "強力監督執政黨施政與能源財政政策。"}]
+            },
+            "臺灣民眾黨 (佔比 4.3% / 5席)": {
+                "articles": [{"title": "民眾黨首度進軍國會即拿下5席不分區，成為立法院第三大黨", "source": "中央社", "snippet": "柯文哲率領民眾黨進軍國會政壇。"}]
+            }
         }
 
     if fetch_real_news and client is not None:
@@ -465,7 +492,6 @@ if analysis_mode == t["mode_1"]:
                 
                 st.dataframe(df_party_sent, use_container_width=True)
                 
-                # 📊 政黨區塊同步加入情感與信心分數視覺化圖表
                 fig_psent, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.2))
                 
                 sentiment_counts_p = df_party_sent["情感極性"].value_counts()
@@ -531,12 +557,12 @@ else:
     st.subheader(t["custom_title"])
     st.markdown(t["custom_desc"])
     
-    custom_target = st.sidebar.text_input(t["custom_target_label"], value="柯文哲")
+    custom_target = st.sidebar.text_input(t["custom_target_label"], value="蔡英文")
     custom_year_input = st.sidebar.number_input(
         t["custom_year_label"],
         min_value=2000,
         max_value=2030,
-        value=2026,
+        value=2020,
         step=1
     )
     custom_year = str(int(custom_year_input))
@@ -570,7 +596,6 @@ else:
                     
                     st.dataframe(df_cust_sent, use_container_width=True)
                     
-                    # 📊 自訂查詢區塊同步加入視覺化圖表
                     fig_csent, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.2))
                     
                     sentiment_counts_c = df_cust_sent["情感極性"].value_counts()
