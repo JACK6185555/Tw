@@ -21,7 +21,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ----------------- 1. 必須先定義 ensure_chinese_font 函式 -----------------
 @st.cache_resource
 def ensure_chinese_font():
     system_name = platform.system()
@@ -69,7 +68,6 @@ def wordcloud_font_path():
         )
     return path
 
-# ----------------- 2. 接著呼叫並設定 Matplotlib 字型（使用相容的 addfont） -----------------
 resolved_font_path = ensure_chinese_font()
 if resolved_font_path:
     import matplotlib.font_manager as fm
@@ -308,6 +306,51 @@ if analysis_mode == t["mode_1"]:
             }
         }
 
+    # 確保全域變數有定義以防作用域錯亂
+    if "parties_data" not in locals() and "parties_data" not in globals():
+        if "2026" in selected_year:
+            parties_data = {
+                "中國國民黨": {"share": 40.0, "articles": [{"title": "國民黨積極備戰2026地方選舉力求顧好現有執政縣市", "source": "聯合報", "snippet": "積極整合地方勢力與政策牛肉。"}]},
+                "民主進步黨": {"share": 40.0, "articles": [{"title": "民進黨啟動2026布局規劃全力迎戰各縣市地方首長寶座", "source": "自由時報", "snippet": "中央與地方齊心推動改革爭取民意支援。"}]},
+                "臺灣民眾黨": {"share": 20.0, "articles": [{"title": "民眾黨佈局2026地方議員與基層選舉擴大政治版圖", "source": "中央社", "snippet": "積極開拓中南部與基層民意基礎。"}]}
+            }
+        elif "2024" in selected_year:
+            parties_data = {
+                "中國國民黨 (佔比 46.0% / 52席)": {
+                    "share": 46.0,
+                    "articles": [{"title": "國民黨立委席次大有斬獲重回國會最大黨，成功發揮監督制衡牌", "source": "聯合報", "snippet": "國民黨主打政黨輪替與下架綠營，立委席次顯著成長。"}]
+                },
+                "民主進步黨 (佔比 45.1% / 51席)": {
+                    "share": 45.1,
+                    "articles": [{"title": "民進黨立委席次雖維持相對多數但失去過半優勢，面臨朝野三黨鼎立", "source": "自由時報", "snippet": "民進黨在總統勝選但立委席次遭到嚴重擠壓。"}]
+                },
+                "臺灣民眾黨 (佔比 7.1% / 8席)": {
+                    "share": 7.1,
+                    "articles": [{"title": "民眾黨政黨票大幅成長，8席不分區成立法院關鍵少數", "source": "中央社", "snippet": "民眾黨吸納大量對藍綠不滿的年輕選民。"}]
+                }
+            }
+        elif "2022" in selected_year:
+            parties_data = {
+                "民主進步黨": {"share": 48.0, "articles": [{"title": "民主進步黨積極固守傳統票倉與本土論述", "source": "自由時報", "snippet": "透過改革政策爭取支持者認同。"}]},
+                "中國國民黨": {"share": 38.0, "articles": [{"title": "中國國民黨強調經濟民生與強力監督", "source": "聯合報", "snippet": "結合地方派系與組織固票。"}]},
+                "臺灣民眾黨": {"share": 14.0, "articles": [{"title": "臺灣民眾黨積極開拓中間選民", "source": "風傳媒", "snippet": "主打理性監督與居住正義。"}]}
+            }
+        else:
+            parties_data = {
+                "民主進步黨 (佔比 52.2% / 61席)": {
+                    "share": 52.2,
+                    "articles": [{"title": "民進黨在2020立委選舉成功拿下過半席次，維持國會優勢", "source": "自由時報", "snippet": "搭配總統大選勝選，全面完全執政。"}]
+                },
+                "中國國民黨 (佔比 33.0% / 38席)": {
+                    "share": 33.0,
+                    "articles": [{"title": "國民黨立委席次雖有成長但未能全面突破，扮演在野監督角色", "source": "聯合報", "snippet": "強力監督執政黨施政與能源財政政策。"}]
+                },
+                "臺灣民眾黨 (佔比 4.3% / 5席)": {
+                    "share": 4.3,
+                    "articles": [{"title": "民眾黨首度進軍國會即拿下5席不分區，成為立法院第三大黨", "source": "中央社", "snippet": "柯文哲率領民眾黨進軍國會政壇。"}]
+                }
+            }
+
     client = None
     year_code = selected_year[:4]
 
@@ -448,6 +491,7 @@ if analysis_mode == t["mode_1"]:
                 "articles": [{"title": "國民黨立委席次雖有成長但未能全面突破，扮演在野監督角色", "source": "聯合報", "snippet": "強力監督執政黨施政與能源財政政策。"}]
             },
             "臺灣民眾黨 (佔比 4.3% / 5席)": {
+                "share": 4.3,
                 "articles": [{"title": "民眾黨首度進軍國會即拿下5席不分區，成為立法院第三大黨", "source": "中央社", "snippet": "柯文哲率領民眾黨進軍國會政壇。"}]
             }
         }
