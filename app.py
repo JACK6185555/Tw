@@ -87,7 +87,7 @@ def build_wordcloud_tokens(text: str) -> str:
         "輿情", "情感", "模型", "候選人", "政黨", "陣營", "選舉", "大選", "立委",
         "立法委員", "立法院", "總統", "歷屆", "雙層次", "第一層次", "第二層次",
         "勝選", "落選", "勝敗", "原因", "關鍵字", "文字雲", "選情", "政治",
-        "2020", "2022", "2024", "2025", "2026",
+        "2020", "2022", "2024", "2025",
         "歷屆大選", "大選輿情", "雙層次分析", "NLP", "WordCloud", "BERT",
     }
     chinese_words = [
@@ -178,7 +178,7 @@ translations = {
         "lang_label": "選擇網頁語言 (Language)",
         "api_label": "輸入 SerpApi Key",
         "mode_label": "選擇分析模式",
-        "mode_1": "歷屆大選雙層次分析 (2022 / 2024 / 2026年)",
+        "mode_1": "歷屆大選雙層次分析 (2022 / 2024年)",
         "mode_2": "自訂政黨或政治人物專屬查詢 (選用功能)",
         "year_label": "選擇大選年份",
         "level_1_title": "🎯 第一層次：總統/首長候選人勝率與情感 NLP 評估",
@@ -188,9 +188,9 @@ translations = {
         "wc_title": "專屬勝敗因果文字雲 (已自動過濾名稱)",
         "party_wc_title": "政黨專屬勝敗因果文字雲 (已自動過濾政黨名稱，聚焦政策與爭議)",
         "custom_title": "🔍 用戶自訂政黨或政治人物專屬查詢 (選用功能)",
-        "custom_desc": "您可以自由輸入任意政治人物或政黨名稱，並選定或自訂年份，系統將即時進行 SerpApi 爬蟲、BERT 情感分析與文字雲生成。",
+        "custom_desc": "您可以自由輸入任意政治人物或政黨名稱，並選定年份，系統將即時進行 SerpApi 爬蟲、BERT 情感分析與文字雲生成。",
         "custom_target_label": "輸入欲查詢的政治人物或政黨",
-        "custom_year_label": "選擇或輸入目標年份",
+        "custom_year_label": "選擇目標年份",
         "btn_run": "執行自訂對象動態分析",
         "loading": "BERT 模型載入中...",
         "success_msg": "成功取得針對【 {target} ({year}年) 】的 {count} 筆語料！",
@@ -204,7 +204,7 @@ translations = {
         "lang_label": "Select Language",
         "api_label": "Enter SerpApi Key",
         "mode_label": "Select Analysis Mode",
-        "mode_1": "Hierarchical Election Analysis (2022 / 2024 / 2026)",
+        "mode_1": "Hierarchical Election Analysis (2022 / 2024)",
         "mode_2": "Custom Politician / Party Query (Optional)",
         "year_label": "Select Election Year",
         "level_1_title": "🎯 Level 1: Presidential / Mayor Candidate Win Rates & Sentiment NLP Evaluation",
@@ -214,9 +214,9 @@ translations = {
         "wc_title": "Exclusive WordCloud (Excluding Name)",
         "party_wc_title": "Party-Specific WordCloud (Excluding Party Name, Focusing on Policies & Controversies)",
         "custom_title": "🔍 Custom Politician / Party Query (Optional)",
-        "custom_desc": "Enter any politician or party name and select/input a year. The system will run real-time SerpApi scraping, BERT sentiment analysis, and WordCloud generation.",
+        "custom_desc": "Enter any politician or party name and select a year. The system will run real-time SerpApi scraping, BERT sentiment analysis, and WordCloud generation.",
         "custom_target_label": "Enter Politician or Party Name",
-        "custom_year_label": "Select or Enter Target Year",
+        "custom_year_label": "Select Target Year",
         "btn_run": "Run Custom Dynamic Analysis",
         "loading": "Loading BERT Model...",
         "success_msg": "Successfully retrieved {count} articles for [{target} ({year})]!",
@@ -247,7 +247,7 @@ if "sentiment_pipeline" not in st.session_state:
 sentiment_pipeline = st.session_state.sentiment_pipeline
 
 if analysis_mode == t["mode_1"]:
-    selected_year = st.sidebar.selectbox(t["year_label"], ["2026年大選 / 2026 Election", "2024年大選 / 2024 Election", "2022年大選 / 2022 Election"])
+    selected_year = st.sidebar.selectbox(t["year_label"], ["2024年大選 / 2024 Election", "2022年大選 / 2022 Election"])
     
     target_count = st.sidebar.number_input(
         "每位候選人/政黨目標新聞數 (建議 100 篇以上)",
@@ -260,16 +260,7 @@ if analysis_mode == t["mode_1"]:
     
     st.subheader(t["level_1_title"])
     
-    if "2026" in selected_year:
-        candidates_data = {
-            "地方縣市首長候選人陣營 A (觀察中)": {
-                "articles": [{"title": "2026九合一地方選舉前哨戰開打，各政黨積極佈局縣市首長人選", "source": "中央社", "snippet": "針對2026年地方大選，藍綠白各陣營陸續展開走訪與政策牛肉比拼。"}]
-            },
-            "地方縣市首長候選人陣營 B (觀察中)": {
-                "articles": [{"title": "2026地方選戰升溫，地方治理與民生經濟成為選民關注核心焦點", "source": "聯合報", "snippet": "選民對地方首長的施政滿意度與未來願景規劃將左右2026選局走向。"}]
-            }
-        }
-    elif "2024" in selected_year:
+    if "2024" in selected_year:
         candidates_data = {
             "賴清德 (勝選 / 勝率約 40.05%)": {
                 "articles": [{"title": "賴清德勝選延續綠營執政，強調民主和平金三角與產業升級", "source": "中央社", "snippet": "賴清德成功守住執政權，但面臨國會三黨不過半挑戰。"}]
@@ -376,13 +367,7 @@ if analysis_mode == t["mode_1"]:
 
     st.subheader(t["level_2_title"])
     
-    if "2026" in selected_year:
-        parties_data = {
-            "中國國民黨": {"share": 40.0, "articles": [{"title": "國民黨積極備戰2026地方選舉力求顧好現有執政縣市", "source": "聯合報", "snippet": "積極整合地方勢力與政策牛肉。"}]},
-            "民主進步黨": {"share": 40.0, "articles": [{"title": "民進黨啟動2026布局規劃全力迎戰各縣市地方首長寶座", "source": "自由時報", "snippet": "中央與地方齊心推動改革爭取民意支援。"}]},
-            "臺灣民眾黨": {"share": 20.0, "articles": [{"title": "民眾黨佈局2026地方議員與基層選舉擴大政治版圖", "source": "中央社", "snippet": "積極開拓中南部與基層民意基礎。"}]}
-        }
-    elif "2024" in selected_year:
+    if "2024" in selected_year:
         parties_data = {
             "中國國民黨 (佔比 46.0% / 52席)": {
                 "share": 46.0,
@@ -414,14 +399,14 @@ if analysis_mode == t["mode_1"]:
         except Exception as error:
             st.error(f"政黨新聞抓取失敗：{error}")
 
-    share_df = pd.DataFrame([{"政黨/陣營": k, "國會/地方佔比 (%)": v["share"]} for k, v in parties_data.items()])
+    share_df = pd.DataFrame([{"政黨/陣營": k, "國會席次佔比 (%)": v["share"]} for k, v in parties_data.items()])
     c1, c2 = st.columns(2)
     with c1:
         st.dataframe(share_df, use_container_width=True)
     with c2:
         fig, ax = plt.subplots(figsize=(6, 2.5))
-        sns.barplot(data=share_df, x="國會/地方佔比 (%)", y="政黨/陣營", palette="viridis", ax=ax)
-        ax.set_title("各政黨佔比分佈 Party Share")
+        sns.barplot(data=share_df, x="國會席次佔比 (%)", y="政黨/陣營", palette="viridis", ax=ax)
+        ax.set_title("各政黨國會佔比分佈 Party Share")
         st.pyplot(fig)
 
     for party_name, info in parties_data.items():
@@ -493,15 +478,7 @@ else:
     st.markdown(t["custom_desc"])
     
     custom_target = st.sidebar.text_input(t["custom_target_label"], value="柯文哲")
-    # 將年份改為數字輸入框，預設為 2026
-    custom_year_input = st.sidebar.number_input(
-        t["custom_year_label"],
-        min_value=2000,
-        max_value=2030,
-        value=2026,
-        step=1
-    )
-    custom_year = str(int(custom_year_input))
+    custom_year = st.sidebar.selectbox(t["custom_year_label"], ["2024", "2020", "2022", "2023", "2025"])
     
     if st.button(t["btn_run"], type="primary"):
         query_str = f"{custom_year} {custom_target} 臺灣 選舉"
