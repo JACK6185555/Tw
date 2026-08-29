@@ -87,7 +87,7 @@ def build_wordcloud_tokens(text: str) -> str:
         "輿情", "情感", "模型", "候選人", "政黨", "陣營", "選舉", "大選", "立委",
         "立法委員", "立法院", "總統", "歷屆", "雙層次", "第一層次", "第二層次",
         "勝選", "落選", "勝敗", "原因", "關鍵字", "文字雲", "選情", "政治",
-        "2020", "2022", "2024", "2025",
+        "2020", "2022", "2024", "2025", "2026",
         "歷屆大選", "大選輿情", "雙層次分析", "NLP", "WordCloud", "BERT",
     }
     chinese_words = [
@@ -170,6 +170,39 @@ def load_cached_bert_model():
     except Exception:
         return None
 
+# ==========================================
+# 情感極性與信心等級分數顯示函式（純文字 + 信心等級）
+# ==========================================
+def display_sentiment_with_confidence_score(text, polarity, confidence):
+    # 計算百分比
+    confidence_pct = int(confidence * 100)
+    
+    # 信心等級文字判定
+    if confidence >= 0.85:
+        certainty_text = "極高確信"
+    elif confidence >= 0.65:
+        certainty_text = "高度確信"
+    else:
+        certainty_text = "中等確信（語意較模稜兩可）"
+
+    # 設定情感極性文字與顏色
+    if polarity == "正面":
+        label_text = "【正面情緒 / 肯定態度】"
+        label_color = "green"
+    elif polarity == "負面":
+        label_text = "【負面情緒 / 批評態度】"
+        label_color = "red"
+    else:
+        label_text = "【中立客觀 / 無明顯情緒】"
+        label_color = "gray"
+    
+    # 畫面輸出
+    st.write(f"**分析內文**：{text}")
+    st.markdown(f"**情感傾向**：:{label_color}[{label_text}]")
+    st.write(f"**信心等級分數**：{confidence_pct}%（{certainty_text}）")
+    st.progress(confidence)
+    st.divider()
+
 translations = {
     "繁體中文": {
         "title": "🇹🇼 臺灣大選雙層次輿情與勝敗因果 NLP 分析系統 (FYP)",
@@ -190,7 +223,7 @@ translations = {
         "custom_title": "🔍 用戶自訂政黨或政治人物專屬查詢 (選用功能)",
         "custom_desc": "您可以自由輸入任意政治人物或政黨名稱，並選定年份，系統將即時進行 SerpApi 爬蟲、BERT 情感分析與文字雲生成。",
         "custom_target_label": "輸入欲查詢的政治人物或政黨",
-        "custom_year_label": "選擇目標年份",
+        "custom_year_label": "輸入目標查詢年份",
         "btn_run": "執行自訂對象動態分析",
         "loading": "BERT 模型載入中...",
         "success_msg": "成功取得針對【 {target} ({year}年) 】的 {count} 筆語料！",
@@ -216,7 +249,7 @@ translations = {
         "custom_title": "🔍 Custom Politician / Party Query (Optional)",
         "custom_desc": "Enter any politician or party name and select a year. The system will run real-time SerpApi scraping, BERT sentiment analysis, and WordCloud generation.",
         "custom_target_label": "Enter Politician or Party Name",
-        "custom_year_label": "Select Target Year",
+        "custom_year_label": "Enter Target Year",
         "btn_run": "Run Custom Dynamic Analysis",
         "loading": "Loading BERT Model...",
         "success_msg": "Successfully retrieved {count} articles for [{target} ({year})]!",
@@ -314,13 +347,30 @@ if analysis_mode == t["mode_1"]:
             if sentiment_pipeline:
                 texts_to_analyze = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_cand.iterrows()]
                 results = sentiment_pipeline(texts_to_analyze)
+                
+                # 逐筆顯示純文字情感極性與信心等級分數
+                for (_, row), res in zip(df_cand.iterrows(), results):
+                    # 將模型標籤對應成正面、負面、中立
+                    raw_label = res['label']
+                    if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
+                        polarity = "正面"
+                    elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
+                        polarity = "負面"
+                    else:
+                        polarity = "中立"
+                    
+                    display_sentiment_with_confidence_score(
+                        text=row["title"],
+                        polarity=polarity,
+                        confidence=float(res['score'])
+                    )
+                
                 sentiments = [{
                     "新聞標題": row["title"][:20] + "...",
                     "情感極性": res['label'],
                     "信心分數": round(res['score'], 4)
                 } for (_, row), res in zip(df_cand.iterrows(), results)]
                 df_sent = pd.DataFrame(sentiments)
-                st.dataframe(df_sent, use_container_width=True)
             else:
                 st.info(t["loading"])
                 df_sent = pd.DataFrame()
@@ -420,13 +470,28 @@ if analysis_mode == t["mode_1"]:
             if sentiment_pipeline:
                 texts = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_party.iterrows()]
                 res_list = sentiment_pipeline(texts)
+                
+                for (_, row), res in zip(df_party.iterrows(), res_list):
+                    raw_label = res['label']
+                    if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
+                        polarity = "正面"
+                    elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
+                        polarity = "負面"
+                    else:
+                        polarity = "中立"
+                    
+                    display_sentiment_with_confidence_score(
+                        text=row["title"],
+                        polarity=polarity,
+                        confidence=float(res['score'])
+                    )
+
                 sentiments = [{
                     "新聞標題": row["title"][:20] + "...",
                     "情感極性": res['label'],
                     "信心分數": round(res['score'], 4)
                 } for (_, row), res in zip(df_party.iterrows(), res_list)]
                 df_party_sent = pd.DataFrame(sentiments)
-                st.dataframe(df_party_sent, use_container_width=True)
             else:
                 st.info(t["loading"])
                 df_party_sent = pd.DataFrame()
@@ -478,7 +543,14 @@ else:
     st.markdown(t["custom_desc"])
     
     custom_target = st.sidebar.text_input(t["custom_target_label"], value="柯文哲")
-    custom_year = st.sidebar.selectbox(t["custom_year_label"], ["2024", "2020", "2022", "2023", "2025"])
+    # 將年份改為數字輸入框，預設 2026
+    custom_year = st.sidebar.number_input(
+        t["custom_year_label"], 
+        min_value=2018, 
+        max_value=2030, 
+        value=2026, 
+        step=1
+    )
     
     if st.button(t["btn_run"], type="primary"):
         query_str = f"{custom_year} {custom_target} 臺灣 選舉"
@@ -486,7 +558,7 @@ else:
         
         try:
             client = serpapi.Client(api_key=api_key_input)
-            articles = fetch_target_articles(client, custom_year, custom_target, 100)
+            articles = fetch_target_articles(client, str(custom_year), custom_target, 100)
             
             df_custom = pd.DataFrame(articles)
             st.success(t["success_msg"].format(target=custom_target, year=custom_year, count=len(df_custom)))
@@ -500,13 +572,28 @@ else:
                 if sentiment_pipeline:
                     texts = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_custom.iterrows()]
                     res_list = sentiment_pipeline(texts)
+                    
+                    for (_, row), res in zip(df_custom.iterrows(), res_list):
+                        raw_label = res['label']
+                        if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
+                            polarity = "正面"
+                        elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
+                            polarity = "負面"
+                        else:
+                            polarity = "中立"
+                        
+                        display_sentiment_with_confidence_score(
+                            text=row["title"],
+                            polarity=polarity,
+                            confidence=float(res['score'])
+                        )
+
                     sentiments = [{
                         "新聞標題": row["title"][:20] + "...",
                         "情感極性": res['label'],
                         "信心分數": round(res['score'], 4)
                     } for (_, row), res in zip(df_custom.iterrows(), res_list)]
                     df_cust_sent = pd.DataFrame(sentiments)
-                    st.dataframe(df_cust_sent, use_container_width=True)
                 else:
                     st.info(t["loading"])
                     df_cust_sent = pd.DataFrame()
