@@ -147,7 +147,7 @@ def fetch_target_articles(client, year: str, target: str, target_count: int = 10
                         "snippet": str(article.get("snippet", ""))
                     }
             if len(collected) >= target_count:
-                return list(collected.values()[:target_count])
+                return list(collected.values())[:target_count]
     
     articles_list = list(collected.values())
     while len(articles_list) < target_count:
@@ -171,7 +171,7 @@ def load_cached_bert_model():
         return None
 
 # ==========================================
-# 情感極性與信心等級分數顯示函式（純文字 + 信心等級，外加定高捲軸容器保持視覺一致）
+# 情感極性與信心等級分數顯示函式
 # ==========================================
 def display_sentiment_with_confidence_score(text, polarity, confidence):
     confidence_pct = int(confidence * 100)
@@ -193,7 +193,6 @@ def display_sentiment_with_confidence_score(text, polarity, confidence):
         label_text = "【中立客觀 / 無明顯情緒】"
         label_color = "gray"
     
-    # 放入與左側表格高度相仿且帶捲軸的容器，維持畫面整齊一致
     with st.container():
         st.markdown(
             f"""
@@ -278,7 +277,6 @@ api_key_input = st.sidebar.text_input(
 
 analysis_mode = st.sidebar.selectbox(t["mode_label"], [t["mode_1"], t["mode_2"]])
 
-# 將爬取數量設定放回側邊欄讓使用者隨時可調整
 target_count = st.sidebar.number_input(
     "每位候選人/政黨目標新聞數 (建議 50-300 篇)",
     min_value=50,
@@ -347,7 +345,6 @@ if analysis_mode == t["mode_1"]:
         col1, col2 = st.columns([1.2, 1.8])
         with col1:
             st.markdown(f"**{t['news_list']} ({len(df_cand)} 篇)**")
-            # 固定表格高度，讓左右兩欄大小一致、畫面整齊不混亂
             st.dataframe(df_cand, use_container_width=True, height=400)
         with col2:
             st.markdown(f"**{t['bert_eval']}**")
@@ -355,7 +352,6 @@ if analysis_mode == t["mode_1"]:
                 texts_to_analyze = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_cand.iterrows()]
                 results = sentiment_pipeline(texts_to_analyze)
                 
-                # 迴圈逐筆帶入高度一致的容器中
                 for (_, row), res in zip(df_cand.iterrows(), results):
                     raw_label = res['label']
                     if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
