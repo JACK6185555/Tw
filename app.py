@@ -178,7 +178,7 @@ translations = {
         "lang_label": "選擇網頁語言 (Language)",
         "api_label": "輸入 SerpApi Key",
         "mode_label": "選擇分析模式",
-        "mode_1": "歷屆大選雙層次分析 (2022 / 2024年)",
+        "mode_1": "歷屆大選雙層次分析 (2022 / 2024 / 2026年)",
         "mode_2": "自訂政黨或政治人物專屬查詢 (選用功能)",
         "year_label": "選擇大選年份",
         "level_1_title": "🎯 第一層次：總統/首長候選人勝率與情感 NLP 評估",
@@ -188,9 +188,9 @@ translations = {
         "wc_title": "專屬勝敗因果文字雲 (已自動過濾名稱)",
         "party_wc_title": "政黨專屬勝敗因果文字雲 (已自動過濾政黨名稱，聚焦政策與爭議)",
         "custom_title": "🔍 用戶自訂政黨或政治人物專屬查詢 (選用功能)",
-        "custom_desc": "您可以自由輸入任意政治人物或政黨名稱，並選定年份，系統將即時進行 SerpApi 爬蟲、BERT 情感分析與文字雲生成。",
+        "custom_desc": "您可以自由輸入任意政治人物或政黨名稱，並選定或自訂年份，系統將即時進行 SerpApi 爬蟲、BERT 情感分析與文字雲生成。",
         "custom_target_label": "輸入欲查詢的政治人物或政黨",
-        "custom_year_label": "輸入目標查詢年份",
+        "custom_year_label": "選擇或輸入目標年份",
         "btn_run": "執行自訂對象動態分析",
         "loading": "BERT 模型載入中...",
         "success_msg": "成功取得針對【 {target} ({year}年) 】的 {count} 筆語料！",
@@ -204,7 +204,7 @@ translations = {
         "lang_label": "Select Language",
         "api_label": "Enter SerpApi Key",
         "mode_label": "Select Analysis Mode",
-        "mode_1": "Hierarchical Election Analysis (2022 / 2024)",
+        "mode_1": "Hierarchical Election Analysis (2022 / 2024 / 2026)",
         "mode_2": "Custom Politician / Party Query (Optional)",
         "year_label": "Select Election Year",
         "level_1_title": "🎯 Level 1: Presidential / Mayor Candidate Win Rates & Sentiment NLP Evaluation",
@@ -214,9 +214,9 @@ translations = {
         "wc_title": "Exclusive WordCloud (Excluding Name)",
         "party_wc_title": "Party-Specific WordCloud (Excluding Party Name, Focusing on Policies & Controversies)",
         "custom_title": "🔍 Custom Politician / Party Query (Optional)",
-        "custom_desc": "Enter any politician or party name and select a year. The system will run real-time SerpApi scraping, BERT sentiment analysis, and WordCloud generation.",
+        "custom_desc": "Enter any politician or party name and select/input a year. The system will run real-time SerpApi scraping, BERT sentiment analysis, and WordCloud generation.",
         "custom_target_label": "Enter Politician or Party Name",
-        "custom_year_label": "Enter Target Year",
+        "custom_year_label": "Select or Enter Target Year",
         "btn_run": "Run Custom Dynamic Analysis",
         "loading": "Loading BERT Model...",
         "success_msg": "Successfully retrieved {count} articles for [{target} ({year})]!",
@@ -241,27 +241,35 @@ api_key_input = st.sidebar.text_input(
 
 analysis_mode = st.sidebar.selectbox(t["mode_label"], [t["mode_1"], t["mode_2"]])
 
-target_count = st.sidebar.number_input(
-    "每位候選人/政黨目標新聞數 (建議 50-300 篇)",
-    min_value=50,
-    max_value=300,
-    value=100,
-    step=50,
-)
-
 if "sentiment_pipeline" not in st.session_state:
     with st.spinner("🧠 首次啟動正在載入高階 BERT 情感分析模型，請稍候..."):
         st.session_state.sentiment_pipeline = load_cached_bert_model()
 sentiment_pipeline = st.session_state.sentiment_pipeline
 
 if analysis_mode == t["mode_1"]:
-    selected_year = st.sidebar.selectbox(t["year_label"], ["2024年大選 / 2024 Election", "2022年大選 / 2022 Election"])
+    selected_year = st.sidebar.selectbox(t["year_label"], ["2026年大選 / 2026 Election", "2024年大選 / 2024 Election", "2022年大選 / 2022 Election"])
     
-    fetch_real_news = st.button("📰 實際動態抓取每位候選人與政黨新聞")
+    target_count = st.sidebar.number_input(
+        "每位候選人/政黨目標新聞數 (建議 100 篇以上)",
+        min_value=50,
+        max_value=300,
+        value=100,
+        step=50,
+    )
+    fetch_real_news = st.button("📰 實際動態抓取每位候選人與政黨新聞 (>=100篇)")
     
     st.subheader(t["level_1_title"])
     
-    if "2024" in selected_year:
+    if "2026" in selected_year:
+        candidates_data = {
+            "地方縣市首長候選人陣營 A (觀察中)": {
+                "articles": [{"title": "2026九合一地方選舉前哨戰開打，各政黨積極佈局縣市首長人選", "source": "中央社", "snippet": "針對2026年地方大選，藍綠白各陣營陸續展開走訪與政策牛肉比拼。"}]
+            },
+            "地方縣市首長候選人陣營 B (觀察中)": {
+                "articles": [{"title": "2026地方選戰升溫，地方治理與民生經濟成為選民關注核心焦點", "source": "聯合報", "snippet": "選民對地方首長的施政滿意度與未來願景規劃將左右2026選局走向。"}]
+            }
+        }
+    elif "2024" in selected_year:
         candidates_data = {
             "賴清德 (勝選 / 勝率約 40.05%)": {
                 "articles": [{"title": "賴清德勝選延續綠營執政，強調民主和平金三角與產業升級", "source": "中央社", "snippet": "賴清德成功守住執政權，但面臨國會三黨不過半挑戰。"}]
@@ -306,75 +314,22 @@ if analysis_mode == t["mode_1"]:
         st.markdown(f"#### 👤 候選人/陣營 Candidate: {cand_name}")
         df_cand = pd.DataFrame(info["articles"])
         
-        # 左右並排佈局
-        col1, col2 = st.columns(2)
-        
-        # 左側：Related News & Summaries 捲動容器
+        col1, col2 = st.columns([1.2, 1.8])
         with col1:
             st.markdown(f"**{t['news_list']} ({len(df_cand)} 篇)**")
-            news_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
-            for _, row in df_cand.iterrows():
-                news_html_container += f"""
-                <div style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; background-color: #ffffff; border-radius: 6px;">
-                    <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 13px;">{row['title']}</p>
-                    <p style="margin: 0; font-size: 12px; color: #666;">來源：{row.get('source', '未知')} | 摘要：{row.get('snippet', '')}</p>
-                </div>
-                """
-            news_html_container += "</div>"
-            st.markdown(news_html_container, unsafe_allow_html=True)
-
-        # 右側：BERT 語言模型情感極性與信心分數 捲動容器
+            st.dataframe(df_cand, use_container_width=True)
         with col2:
             st.markdown(f"**{t['bert_eval']}**")
             if sentiment_pipeline:
                 texts_to_analyze = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_cand.iterrows()]
                 results = sentiment_pipeline(texts_to_analyze)
-                
-                bert_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
-                sentiments = []
-                
-                for (_, row), res in zip(df_cand.iterrows(), results):
-                    raw_label = res['label']
-                    if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
-                        polarity = "正面"
-                        label_color = "green"
-                        label_text = "【正面情緒 / 肯定態度】"
-                    elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
-                        polarity = "負面"
-                        label_color = "red"
-                        label_text = "【負面情緒 / 批評態度】"
-                    else:
-                        polarity = "中立"
-                        label_color = "gray"
-                        label_text = "【中立客觀 / 無明顯情緒】"
-                    
-                    confidence = float(res['score'])
-                    confidence_pct = int(confidence * 100)
-                    
-                    if confidence >= 0.85:
-                        certainty_text = "極高確信"
-                    elif confidence >= 0.65:
-                        certainty_text = "高度確信"
-                    else:
-                        certainty_text = "中等確信（語意較模稜兩可）"
-                    
-                    bert_html_container += f"""
-                    <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background-color: #ffffff;">
-                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>分析標題</b>：{row['title']}</p>
-                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
-                        <p style="margin: 0; font-size: 13px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
-                    </div>
-                    """
-                    
-                    sentiments.append({
-                        "新聞標題": row["title"][:20] + "...",
-                        "情感極性": res['label'],
-                        "信心分數": round(confidence, 4)
-                    })
-                
-                bert_html_container += "</div>"
-                st.markdown(bert_html_container, unsafe_allow_html=True)
+                sentiments = [{
+                    "新聞標題": row["title"][:20] + "...",
+                    "情感極性": res['label'],
+                    "信心分數": round(res['score'], 4)
+                } for (_, row), res in zip(df_cand.iterrows(), results)]
                 df_sent = pd.DataFrame(sentiments)
+                st.dataframe(df_sent, use_container_width=True)
             else:
                 st.info(t["loading"])
                 df_sent = pd.DataFrame()
@@ -421,7 +376,13 @@ if analysis_mode == t["mode_1"]:
 
     st.subheader(t["level_2_title"])
     
-    if "2024" in selected_year:
+    if "2026" in selected_year:
+        parties_data = {
+            "中國國民黨": {"share": 40.0, "articles": [{"title": "國民黨積極備戰2026地方選舉力求顧好現有執政縣市", "source": "聯合報", "snippet": "積極整合地方勢力與政策牛肉。"}]},
+            "民主進步黨": {"share": 40.0, "articles": [{"title": "民進黨啟動2026布局規劃全力迎戰各縣市地方首長寶座", "source": "自由時報", "snippet": "中央與地方齊心推動改革爭取民意支援。"}]},
+            "臺灣民眾黨": {"share": 20.0, "articles": [{"title": "民眾黨佈局2026地方議員與基層選舉擴大政治版圖", "source": "中央社", "snippet": "積極開拓中南部與基層民意基礎。"}]}
+        }
+    elif "2024" in selected_year:
         parties_data = {
             "中國國民黨 (佔比 46.0% / 52席)": {
                 "share": 46.0,
@@ -453,86 +414,34 @@ if analysis_mode == t["mode_1"]:
         except Exception as error:
             st.error(f"政黨新聞抓取失敗：{error}")
 
-    share_df = pd.DataFrame([{"政黨/陣營": k, "國會席次佔比 (%)": v["share"]} for k, v in parties_data.items()])
+    share_df = pd.DataFrame([{"政黨/陣營": k, "國會/地方佔比 (%)": v["share"]} for k, v in parties_data.items()])
     c1, c2 = st.columns(2)
     with c1:
         st.dataframe(share_df, use_container_width=True)
     with c2:
         fig, ax = plt.subplots(figsize=(6, 2.5))
-        sns.barplot(data=share_df, x="國會席次佔比 (%)", y="政黨/陣營", palette="viridis", ax=ax)
-        ax.set_title("各政黨國會佔比分佈 Party Share")
+        sns.barplot(data=share_df, x="國會/地方佔比 (%)", y="政黨/陣營", palette="viridis", ax=ax)
+        ax.set_title("各政黨佔比分佈 Party Share")
         st.pyplot(fig)
 
     for party_name, info in parties_data.items():
         st.markdown(f"#### 🏛️ 政黨 Party: {party_name}")
         df_party = pd.DataFrame(info["articles"])
         
-        col1, col2 = st.columns(2)
-        
+        col1, col2 = st.columns([1.2, 1.8])
         with col1:
-            st.markdown(f"**{t['news_list']} ({len(df_party)} 篇)**")
-            news_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
-            for _, row in df_party.iterrows():
-                news_html_container += f"""
-                <div style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; background-color: #ffffff; border-radius: 6px;">
-                    <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 13px;">{row['title']}</p>
-                    <p style="margin: 0; font-size: 12px; color: #666;">來源：{row.get('source', '未知')} | 摘要：{row.get('snippet', '')}</p>
-                </div>
-                """
-            news_html_container += "</div>"
-            st.markdown(news_html_container, unsafe_allow_html=True)
-
+            st.dataframe(df_party, use_container_width=True)
         with col2:
-            st.markdown(f"**{t['bert_eval']}**")
             if sentiment_pipeline:
                 texts = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_party.iterrows()]
                 res_list = sentiment_pipeline(texts)
-                
-                bert_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
-                sentiments = []
-                
-                for (_, row), res in zip(df_party.iterrows(), res_list):
-                    raw_label = res['label']
-                    if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
-                        polarity = "正面"
-                        label_color = "green"
-                        label_text = "【正面情緒 / 肯定態度】"
-                    elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
-                        polarity = "負面"
-                        label_color = "red"
-                        label_text = "【負面情緒 / 批評態度】"
-                    else:
-                        polarity = "中立"
-                        label_color = "gray"
-                        label_text = "【中立客觀 / 無明顯情緒】"
-                    
-                    confidence = float(res['score'])
-                    confidence_pct = int(confidence * 100)
-                    
-                    if confidence >= 0.85:
-                        certainty_text = "極高確信"
-                    elif confidence >= 0.65:
-                        certainty_text = "高度確信"
-                    else:
-                        certainty_text = "中等確信（語意較模稜兩可）"
-                    
-                    bert_html_container += f"""
-                    <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background-color: #ffffff;">
-                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>分析標題</b>：{row['title']}</p>
-                        <p style="margin: 0 0 4px 0; font-size: 13px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
-                        <p style="margin: 0; font-size: 13px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
-                    </div>
-                    """
-                    
-                    sentiments.append({
-                        "新聞標題": row["title"][:20] + "...",
-                        "情感極性": res['label'],
-                        "信心分數": round(confidence, 4)
-                    })
-                
-                bert_html_container += "</div>"
-                st.markdown(bert_html_container, unsafe_allow_html=True)
+                sentiments = [{
+                    "新聞標題": row["title"][:20] + "...",
+                    "情感極性": res['label'],
+                    "信心分數": round(res['score'], 4)
+                } for (_, row), res in zip(df_party.iterrows(), res_list)]
                 df_party_sent = pd.DataFrame(sentiments)
+                st.dataframe(df_party_sent, use_container_width=True)
             else:
                 st.info(t["loading"])
                 df_party_sent = pd.DataFrame()
@@ -584,13 +493,15 @@ else:
     st.markdown(t["custom_desc"])
     
     custom_target = st.sidebar.text_input(t["custom_target_label"], value="柯文哲")
-    custom_year = st.sidebar.number_input(
-        t["custom_year_label"], 
-        min_value=2018, 
-        max_value=2030, 
-        value=2026, 
+    # 將年份改為數字輸入框，預設為 2026
+    custom_year_input = st.sidebar.number_input(
+        t["custom_year_label"],
+        min_value=2000,
+        max_value=2030,
+        value=2026,
         step=1
     )
+    custom_year = str(int(custom_year_input))
     
     if st.button(t["btn_run"], type="primary"):
         query_str = f"{custom_year} {custom_target} 臺灣 選舉"
@@ -598,77 +509,27 @@ else:
         
         try:
             client = serpapi.Client(api_key=api_key_input)
-            articles = fetch_target_articles(client, str(custom_year), custom_target, int(target_count))
+            articles = fetch_target_articles(client, custom_year, custom_target, 100)
             
             df_custom = pd.DataFrame(articles)
             st.success(t["success_msg"].format(target=custom_target, year=custom_year, count=len(df_custom)))
             
-            col1, col2 = st.columns(2)
-            
+            col1, col2 = st.columns([1.2, 1.8])
             with col1:
-                st.markdown(f"**{t['news_list']} ({len(df_custom)} 篇)**")
-                news_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
-                for _, row in df_custom.iterrows():
-                    news_html_container += f"""
-                    <div style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee; background-color: #ffffff; border-radius: 6px;">
-                        <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 13px;">{row['title']}</p>
-                        <p style="margin: 0; font-size: 12px; color: #666;">來源：{row.get('source', '未知')} | 摘要：{row.get('snippet', '')}</p>
-                    </div>
-                    """
-                news_html_container += "</div>"
-                st.markdown(news_html_container, unsafe_allow_html=True)
-
+                st.markdown(f"**{t['news_list']}**")
+                st.dataframe(df_custom[["title", "source"]], use_container_width=True)
             with col2:
                 st.markdown(f"**{t['bert_eval']}**")
                 if sentiment_pipeline:
                     texts = [(row["title"] + " " + row["snippet"])[:512] for _, row in df_custom.iterrows()]
                     res_list = sentiment_pipeline(texts)
-                    
-                    bert_html_container = "<div style='height: 420px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fafafa;'>"
-                    sentiments = []
-                    
-                    for (_, row), res in zip(df_custom.iterrows(), res_list):
-                        raw_label = res['label']
-                        if "positive" in raw_label.lower() or "正面" in raw_label or raw_label == "LABEL_1":
-                            polarity = "正面"
-                            label_color = "green"
-                            label_text = "【正面情緒 / 肯定態度】"
-                        elif "negative" in raw_label.lower() or "負面" in raw_label or raw_label == "LABEL_0":
-                            polarity = "負面"
-                            label_color = "red"
-                            label_text = "【負面情緒 / 批評態度】"
-                        else:
-                            polarity = "中立"
-                            label_color = "gray"
-                            label_text = "【中立客觀 / 無明顯情緒】"
-                        
-                        confidence = float(res['score'])
-                        confidence_pct = int(confidence * 100)
-                        
-                        if confidence >= 0.85:
-                            certainty_text = "極高確信"
-                        elif confidence >= 0.65:
-                            certainty_text = "高度確信"
-                        else:
-                            certainty_text = "中等確信（語意較模稜兩可）"
-                        
-                        bert_html_container += f"""
-                        <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background-color: #ffffff;">
-                            <p style="margin: 0 0 4px 0; font-size: 13px;"><b>分析標題</b>：{row['title']}</p>
-                            <p style="margin: 0 0 4px 0; font-size: 13px;"><b>情感傾向</b>：<span style="color:{label_color}; font-weight:bold;">{label_text}</span></p>
-                            <p style="margin: 0; font-size: 13px;"><b>信心等級分數</b>：{confidence_pct}%（{certainty_text}）</p>
-                        </div>
-                        """
-                        
-                        sentiments.append({
-                            "新聞標題": row["title"][:20] + "...",
-                            "情感極性": res['label'],
-                            "信心分數": round(confidence, 4)
-                        })
-                    
-                    bert_html_container += "</div>"
-                    st.markdown(bert_html_container, unsafe_allow_html=True)
+                    sentiments = [{
+                        "新聞標題": row["title"][:20] + "...",
+                        "情感極性": res['label'],
+                        "信心分數": round(res['score'], 4)
+                    } for (_, row), res in zip(df_custom.iterrows(), res_list)]
                     df_cust_sent = pd.DataFrame(sentiments)
+                    st.dataframe(df_cust_sent, use_container_width=True)
                 else:
                     st.info(t["loading"])
                     df_cust_sent = pd.DataFrame()
