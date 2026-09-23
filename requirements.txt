@@ -18,5 +18,6 @@ umap-learn
 hdbscan
 spacy
 transformers
+torch
 torchvision
 playwright==1.49.0
